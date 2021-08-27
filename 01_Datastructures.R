@@ -10,15 +10,18 @@
 firstVector <- c(0.1, 0.5, 0.4) # This is a numeric vector of type double
 secondVector <- c(1L, 2L, 3L) # Another numeric vector of type integer 
 thirdVector <- c("One", "Two", "Three") # Third vector is a character vector 
+fourthVector <- c(1L, .2)
 
 print("Now I am displaying the data types of each of these vectors")
 
 print(typeof(firstVector))
 print(typeof(secondVector))
 print(typeof(thirdVector))
+print(typeof(fourthVector))
 
 # Values of a vector can be accessed individually with subscripts 
-print(firstVector[2])
+print(firstVector[1])
+print(firstVector["freshman"])
 
 # Vectors can also be named 
 names(firstVector) <- c("freshman", "sophomore", "junior")
@@ -29,20 +32,22 @@ print(firstVector["junior"])
 # Indexing in R starts with 1 (Unlike Python, Java, and other programming languages. However, the "NA" is different)
 print(firstVector[0])
 
-# Creating lists 
+# Creating lists  
 firstList <- list("freshman count" = 10L, "sophomore count" = 15L, "junior %" = 0.5) # A quick note below
 # Even though name with a space is okay in R, it is not recommended, as accessing it poses difficulties. 
 print(firstList$`junior %`)
+typeof(firstList$`sophomore count`)
 
 # install.packages("tidyverse")
 library(tidyverse)
-library(lubridate)
+library(lubridate) # lubricate is part of tidyverse. tidyverse is a collection of core libraries such as 
+                   #' tibble, dplyr etc
 
 today() # Provides current day in yyyy-mm-dd format 
 now() # Provides time in PDT (R binaries try to pick up the local timezone)
 
 # Converting date/datetime from strings 
-yesterdaysDate <- ymd("2021-08-24")
+yesterdaysDate <- ymd("2021-08-25")
 print(yesterdaysDate)
 
 # R is super cool to understand the format in many ways!
@@ -62,9 +67,12 @@ print(tomorrowClassTime)
 tomorrowClassTime <- mdy_hm("08/26/2021 19:15")
 print(tomorrowClassTime)
 
+?mdy_hm
+
 # How to make the function recognize my local timezone? 
 # ?ymd_hms
 tomorrowClassTime <- ymd_hms("2021-08-26 19:15:00", tz="America/Los_Angeles")
+# tomorrowClassTime <- ymd_hms("2021-08-26 19:15:00", tz="PDT")
 print(tomorrowClassTime)
 # tz above should be what the OS format. Please check the format for the specific OS you are working on
 # Saying that to make the program/code generalizable for any OS, additional functions should be explored 
@@ -79,6 +87,10 @@ print(firstRClassDay)
 gradeRClass <- data.frame(name=c("LeBron James", "Serena Williams", "John Cena"), score=c(85, 90, 70))
 print(gradeRClass)
 
+vect1 <- c(TRUE, TRUE, TRUE)
+gradeRClass[vect1,]
+
+
 # You can use str function to display the structure 
 str(gradeRClass)
 
@@ -91,6 +103,11 @@ str(gradeRClass)
 mdat <- matrix(c(1,2,3, 11,12,13), nrow = 2, ncol = 3, byrow = TRUE,
                dimnames = list(c("row1", "row2"),
                                c("C.1", "C.2", "C.3")))
+mdat
+
+seq1 <- 1:10 
+seq1 
+mdat <- matrix(c(1,2,3,4), nrow=2, ncol=4)
 mdat
 
 scoresRClass <- matrix(c(90, 78, 84, 88, 78, 91, 72, 74, 76), nrow=3, ncol=3, 

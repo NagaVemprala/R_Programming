@@ -10,7 +10,11 @@ dim(diamonds)
 
 # If you want to know the structure of the table .. go for it!
 str(diamonds)
+glimpse(diamonds)
+glimpse(mtcars)
+str(mtcars)
 
+?glimpse()
 # View the first 6 records of a built in dataset "diamonds"
 head(diamonds)
 
