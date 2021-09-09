@@ -1,0 +1,233 @@
+---
+title: "04_Exploratory_Data_Analysis"
+author: "Naga Vemprala"
+date: "9/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+#### This R markdown demonstrates tools available to read data from various data 
+#### sources. Clean and process the data for data exploration. Summarizing output.
+#### Some of the concepts are repeated between "Exploratory Data Analysis" and 
+#### "Data Wrangling, Data Cleaning, and Summarizing Data" 
+#### Data comes in various formats and forms. 
+#### Great source for datasets: https://archive.ics.uci.edu/ml/datasets.php 
+#### -
+
+
+``` {r}
+#' ------------------------------------------------------------------------- '#
+#'                       Reading and Writing data 
+#' ------------------------------------------------------------------------- '#
+#' 
+# Reading CSV files 
+fileName <- paste0(getwd(),"/../Datasets/oldCarsInsuranceData.csv")
+carsData1985 <- read.csv(fileName )
+
+```
+
+``` {r}
+# Reading Excel Tab delimited files using read.table 
+fileName <- paste0(getwd(),"/../Datasets/oldCarsInsuranceData1985.xlsx")
+carsData1985 <- read.table(fileName )
+head(carsData1985)
+```
+
+```{r}
+library(tidyverse)
+# We can check for the presence of a file using file.exists function 
+if (file.exists(fileName)) {
+    carsData1985 <- read_csv(fileName)
+    class(carsData1985)
+}
+
+``` 
+``` {r} 
+# Downloading files from a specified URL 
+newsURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FDATA.gov_NGAP.xlsx"
+download.file(newsURL, destfile = "test.xlsx")
+
+```
+
+
+``` {r}
+# Pay attention that the github R script file we are reading is of raw data. If we 
+# need to provide the URL link, download.file() downloads HTML tags as well 
+
+url <- "https://raw.githubusercontent.com/NagaVemprala/R_Programming/main/03_ControlStructures_Functions.R"
+download.file(url, destfile = "delete_ControlStructures_Functions.R")
+```
+
+``` {r}
+#' Most widely used libraries for reading excel data are openxlsx and xlsx 
+library(openxlsx)
+carsData1985 <- read.xlsx(fileName)
+head(carsData1985$make)
+```
+
+``` {r}
+
+# An excel file with multiple sheets can be read using the sheet argument 
+# Additional arguments such as startRow, skipEmptyRows helps read slice of data
+fileName <- paste0(getwd(),"/../Datasets/oldCarsInsuranceData1985Split.xlsx")
+carsData1985 <- carsData1985[0,]
+for (sheet in c("Sheet1", "Sheet2")) {
+    carsData1985 <- rbind(carsData1985, read.xlsx(fileName, 
+                                                  sheet = sheet,
+                                                  colNames = F,
+                                                  startRow = 2))
+}
+
+head(carsData1985)
+```
+
+``` {r}
+# Reading XML data (xml2 is a new library still under development.)
+# There is also a XML library available. For basic XML data scraping either of 
+# these two work great 
+library(xml2)
+newsURL <- "https://www.indiatoday.in/rss/home"
+topics <- read_xml(newsURL)
+xml_name(topics)
+xml_children(topics)
+listOfNewsLinks <- xml_children(topics) %>% xml_find_all("//link") %>% xml_text()
+print(listOfNewsLinks[1:5])
+```
+
+``` {r}
+library(xml2)
+#librart(magrittr) #for pipe operator
+url <- "http://catsalut.gencat.cat/web/.content/xml/out.xml"
+doc <- read_xml(url)
+#get the minicipi nodes
+mun.nodes <- xml_find_all(doc, ".//municipi")
+#build data.frame
+df <- data.frame(
+  nom.mu  = mun.nodes %>% xml_attr("nom_mu"),
+  cod_mu  = mun.nodes %>% xml_attr("cod_mu"),
+  nom_com = xml_find_first(mun.nodes, xpath = ".//ancestor::comarca") %>% xml_attr("nom_com"),
+  cod_com = xml_find_first(mun.nodes, xpath = ".//ancestor::comarca") %>% xml_attr("cod_com"),
+  nom_reg = xml_find_first(mun.nodes, xpath = ".//ancestor::regio") %>% xml_attr("nom_reg"),
+  cod_reg = xml_find_first(mun.nodes, xpath = ".//ancestor::regio") %>% xml_attr("cod_reg"))
+head(df)
+```
+``` {r}
+
+library(xml2)
+dat <- read_xml("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Frestaurants.xml")
+dat <- xml_find_all(dat, ".//row") 
+xml_attr(dat[19], "_address")
+
+```
+
+``` {r}
+
+# Reading HTML data
+newsURL <- "https://www.rebeccabarter.com/categories/visualization/"
+library(rvest)
+read_html(newsURL) 
+read_html(newsURL) %>% 
+    html_nodes("div") %>% 
+    html_nodes("[class='title']") %>% 
+    html_text()
+```
+
+
+``` {r}
+
+#' ------------------------------------------------------------------------- '#
+#'          Exploratory Data Analysis (EDA) - Summarizing data   
+#' ------------------------------------------------------------------------- '#
+#' 
+
+#' Important steps in the EDA involves: 
+#' 1. Understanding the data (Cleaning the data)
+#' 2. Removing any irregularities 
+#' 3. Visualizing the data to assess using a naked eye what the data offers 
+#' 4. Answering "what type of preliminary tests should be performed before 
+#'    running a statistical model 
+#'     
+fileName <- paste0(getwd(),"/Car_sales.csv")
+carSales <- read.csv(fileName)
+
+#' Handling NA values in vectors and dataframes 
+#' Running summary statistics provides high-level information about the presence 
+#' of NA values in the dataframe along with other meaningful descriptive statistics 
+#' 
+summary(carSales) # Provides summary of the complete data frame 
+summary(carSales$Sales_in_thousands)
+
+```
+
+``` {r}
+#' Role of NA in a vector of dataframe 
+#' Revisit the way we create vectors first 
+
+classScores <- c(76,65,83,91,85)
+print(classScores)
+# let us say that we want to remove the second score that is less than 70
+# set the second element to NULL
+# Create a logical vector first and then set the value to false for the position which needs to be removed 
+myBoolVector <- 1:length(classScores) 
+myBoolVector <- !myBoolVector %in% c(2)
+myBoolVector
+
+# Pass the logical vector as input selection 
+classScores <- classScores[myBoolVector]
+mode(classScores)
+print(classScores)
+
+```
+``` {r}
+# However, removing the elements from a list is quite straight forward 
+classScoresList <- list(student1 = 76, student2=65, student3=83, student4=91, student5=85)
+classScoresList
+length(classScoresList)
+# Now we want to remove the second element. Simply set the element to NULL
+print('After removing the unnecessary element: ')
+classScoresList[2] <- NULL 
+classScoresList
+length(classScoresList)
+```
+
+``` {r}
+# What if, if we really want a list to hold NULL 
+lst <- list("A", NULL, "C")
+length(lst)
+lst[2]
+```
+``` {r}
+# Use a compact function to remove the NULL values 
+length(lst)
+lst <- compact(lst)
+length(lst)
+```
+
+``` {r}
+# Removing list elements using a condition 
+lst <- list(NA, 0, NA, 1, 2)
+lst <- lst %>% 
+    discard(is.na)
+lst
+```
+``` {r}
+is_na_or_null <- function(x) {
+    is.na(x) || is.null(x)
+}
+lst <- list(NA, 0, NULL, 1, 2)
+lst %>% 
+    discard(is_na_or_null)
+# Opposite of discard is keep function. Elements that are required are kept rest can be discarded
+```
+
+``` {r}
+# Removing rows from a dataframe containing NAs can be done using omit 
+dim(carSales) 
+carSales1 <- na.omit(carSales)
+dim(carSales1)
+```
