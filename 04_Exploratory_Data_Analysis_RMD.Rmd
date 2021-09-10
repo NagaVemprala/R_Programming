@@ -231,3 +231,113 @@ dim(carSales)
 carSales1 <- na.omit(carSales)
 dim(carSales1)
 ```
+
+``` {r}
+# Plots helps to understand data much better than various statistical results, summary statistics 
+# Three basic plots that mostly come handy are: 
+# 1. Univariate 
+# 2. Bivariate 
+# 3. Multivariate 
+# Basic tools such as annotating, providing labels, color coding enhances the aesthetics 
+
+# The plotting related functions reside in the graphics library of the base package 
+# graphics include base plots such as a simple plot, scatterplot, hist for histogram, 
+# and boxplot
+# Also, graphic systems are primarily 3. 
+# 1. Base graphics system 
+# 2. Lattice Graphics System (additional flexibility through single function approach)
+# 3. ggplot2 Graphics System (Incremental approach)
+#plot(carSales$Horsepower, carSales$Fuel_capacity) # Basic plot 
+str(carSales)
+plot(carSales$Fuel_capacity, carSales$Horsepower,
+     main = "A scatter plot between Horsepower of a car against Fuel Capacity", 
+     xlab = "Fuel capacity", ylab = "Horsepower")
+```
+
+``` {r}
+# The next level of basic plots include Lattice system where we can add another 
+# variable into our analysis (Third variable). Multiple plots for visualizing using 
+# multiple predictors perspective 
+carSales$EngineSizeRange <- cut(carSales$Engine_size,c(0,2,4,6,8))
+carSales$EngineSizeRange <- factor(carSales$EngineSizeRange, labels = c("engine size 0-2",
+                                   "engine size 2-4",
+                                   "engine size 4-6",
+                                   "engine size 6+"), 
+                                   ordered = T)
+library(lattice)
+# There are other functions of xyplot such as bwplot and levelplot 
+# Other beautiful plots such as violin plots and geographical plots can be drawn using them
+
+xyplot(carSales$Fuel_capacity~carSales$Horsepower | carSales$EngineSizeRange, 
+     title = "A scatter plot between Horsepower of a car against Fuel Capacity", 
+     xlab = "Fuel capacity", ylab = "Horsepower")
+
+# There are many other options lattice plots offer which can be obtained from the help 
+## ?xyplot()
+```
+
+``` {r}
+# Improved version of plotting can be done using ggplot 
+# ggplot follows an incremental approach 
+library(ggplot2)
+## ?qplot()
+qplot(carSales$Fuel_capacity,carSales$Horsepower,
+      main = "A scatter plot between Horsepower of a car against Fuel Capacity", 
+      xlab = "Fuel capacity", ylab = "Horsepower")
+
+```
+
+``` {r}
+#' Other univariate analysis include histograms and boxplots 
+#hist(carSales$Fuel_capacity)
+hist(carSales$Fuel_capacity, breaks=6, 
+     main="Histogram of Fuel Capacity",
+     xlab = "Fuel Capacity",
+     labels = T)
+```
+
+``` {r}
+boxplot(#carSales$Fuel_capacity,
+        carSales$Horsepower,
+        main="Fuel Capacity/Horsepower", frame.plot=FALSE)
+
+boxplot(#carSales$Fuel_capacity,
+    carSales$Horsepower ~ carSales$EngineSizeRange,
+    main="Fuel Capacity/Horsepower", frame.plot=FALSE)
+
+```
+
+``` {r}
+# Scatter plot
+library(car) # You can install this car package. This comes in handy while working on applied regression analysis
+# You can combine boxplots and scatterplots into a single graph without much effort 
+scatterplot(carSales$Fuel_capacity,carSales$Horsepower, 
+            xlab = "Fuel capacity", ylab = "Horsepower", 
+            main="A scatter plot between Horsepower of a car against Fuel Capacity", smooth=FALSE)
+```
+
+``` {r}
+print(' ----------------------------------------- ')
+```
+?par()
+Several parameters can only be set by a call to par():
+
+"ask",
+
+"fig", "fin",
+
+"lheight",
+
+"mai", "mar", "mex", "mfcol", "mfrow", "mfg",
+
+"new",
+
+"oma", "omd", "omi",
+
+"pin", "plt", "ps", "pty",
+
+"usr",
+
+"xlog", "ylog",
+
+"ylbias"
