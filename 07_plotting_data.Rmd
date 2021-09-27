@@ -1,0 +1,299 @@
+---
+title: "07_Plotting_Data"
+author: "Naga Vemprala"
+date: "9/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## This document provides various types of graphs that can be generated using the three available graph systems of R 
+
+```{r simulated data}
+# Generate "n" random numbers using various types of probability distributions 
+# Provide the n, mean, and standard deviations, or any other required values depending on the type of distribution 
+
+n<-1000
+x1<-rnorm(n, 220,40)
+x2<-rnorm(n, 220,80)
+x3<-rpois(n, 35)
+x4<-rnorm(n, 35,sqrt(35))
+x5<-100+rexp(n, 1/25)
+x6<-runif(n, 100,200)
+x7<-rpois(n, 5)
+x8<-round(runif(n, 10,20))
+
+# Save the simulated data into a dataframe 
+dat<-data.frame(x1,x2,x3,x4,x5,x6,x7, x8)
+
+```
+
+``` {r}
+head(dat)
+```
+
+```{r simulated_data}
+# Plot the histograms of various distributions into 2 rows and 3 columsn 
+# Basic R plotting system supports this approach 
+par(mfrow=c(2,3))
+#par(mfcol=c(2,3))
+hist(dat[, 1])
+hist(dat[, 2])
+hist(dat[, 3])
+hist(dat[, 4])
+hist(dat[, 5])
+hist(dat[, 6])
+```
+```{r}
+# Basic R plotting system supports this approach 
+par(mfrow=c(2,3))
+#par(mfcol=c(2,3))
+# Change color; xlab 
+hist(dat[, 1], main = "Distribution with mean 220, sd 40") 
+# Change color; xlab
+hist(dat[, 2], main = "Distribution with mean 220, sd 80")
+# Set title; xlab
+hist(dat[, 3], col = "green") # Set title 
+# Set title; Set title 
+hist(dat[, 4], xlab = "X4") # 
+# Decrease the breaks to 4 
+hist(dat[, 5], main = "Poisson distribution",
+     col = "red",
+     xlab = "X5"
+     #, Add breaks here 
+     )
+#
+hist(dat[, 6])
+```
+# Creating a linear regression
+Housing price = 100,000 base price + 
+                school-rating * 50,000 + 
+                (areaInSFT * range(130,230))
+                (crime rate in 1-10 * -15,000) + 
+                (Businesses in the neighborhood * 5000)
+
+``` {r}
+dataSamples <- 1000
+housePrice <- 100000
+schoolRating <- round(runif(dataSamples, 4, 10))
+areaInSft <- round(runif(dataSamples, 1000, 3800))
+crimeRate <- runif(dataSamples, 1, 100)
+businesses <- round(runif(dataSamples, 10, 20))
+housePrice <- housePrice + 50000 * schoolRating -
+    1500 * crimeRate + 
+    5000 * businesses +
+    #areaInSft[i in runif(1, 130,230) * areaInSft 
+    sapply(areaInSft, FUN = function(x) { x * runif(1, 130,230)})
+```
+
+``` {r}
+plot(areaInSft, housePrice)
+```
+``` {r}
+# Scale the y-axis of housing price so that exponential scaling is not used as see above 
+housePrice <- housePrice/100000
+# Display sample housing prices to make sure the points are as expected 
+housePrice[1:3]
+
+# The position of the text is looking ugly can you please adjust it? 
+plot(areaInSft, housePrice, main = "Housing Price rise due to lot size of house ",
+     xlab = "Area of house",
+     ylab = "Housing price")
+text(2000, 9.5, "The housing price is scaled at $100,000 and this messages is\n 
+           defaulted to 2000, 9 coordinates. Change it please",
+          cex = 1, 
+          col = "red")
+
+```
+``` {r fig.dim = c(20, 10)}
+# Also, observe that the housing price scale operation "housePrice <- housePrice/100000" is removed. 
+# You can control this operation using a conditional operation logic. 
+# Please try it out! 
+
+# Display sample housing prices to make sure the points are as expected 
+housePrice[1:3]
+
+# The position of the text is looking ugly can you please adjust it? 
+plot(areaInSft, housePrice, main = "Housing Price rise due to lot size of house",
+     xlab = "Area of house",
+     ylab = "Housing price")
+text(mean(areaInSft), max(housePrice)-0.25, " The housing price is scaled at $100,000 and this messages is adjusted dynamically",
+          cex = 1, 
+          col = "blue")
+
+
+```
+``` {r}
+# Include a R Code to display the relationship of all the X variables on the housing price
+# Hint: Use mfrow or mfcol function to create panel of plots 
+
+```
+
+``` {r}
+# Lattice Plots 
+library(lattice) 
+xyplot(housePrice ~ areaInSft)
+# Using xyplot, creating panel plots is easy. Just add third factor variable such as school rating 
+# As shown in the next plot 
+```
+``` {r}
+# Lattice Plots 
+library(lattice) 
+#xyplot(housePrice ~ areaInSft )
+xyplot(housePrice ~ areaInSft, groups = schoolRating
+       # Add one option at a time by uncomment the below lines and see how the 
+       # additional annotations are added to the plot
+       , auto.key=TRUE, col = schoolRating, columns = 7
+       )
+```
+``` {r}
+# Lattice Plots 
+xyplot(housePrice ~ areaInSft | schoolRating, groups = schoolRating
+       # Add one option at a time by uncomment the below lines and see how the 
+       # additional annotations are added to the plot
+       , auto.key=TRUE, col = schoolRating, columns = 7
+       )
+```
+``` {r fig.dim = c(20, 10)}
+# Lattice Plots 
+# (Observe how the size of the plot can be modified using the fig.dim for the markdown)
+library(lattice) 
+schoolRating <- factor(schoolRating, labels = c("4/10 school","5/10 school","6/10 school",
+                                                "7/10 school","8/10 school","9/10 school",
+                                                "10/10 school"))
+xyplot(housePrice ~ areaInSft | schoolRating, groups = schoolRating
+       # Add one option at a time by uncomment the below lines and see how the 
+       # additional annotations are added to the plot
+       , auto.key=TRUE
+       , col = schoolRating
+       , columns = 7
+       , xlab = "Area in sq. feet"
+       , ylab = "House price in Thousands of dollars"
+       , layout = c(4, 2)
+       )
+```
+
+## qplot and ggplot are demonstrated below. 
+<p>
+Demonstration of qplot ggplot are provided. Using the similar examples, the preloaded diamonds dataset can be visualized. 
+For practice, please replicate the steps using qplot and then continue implementing same graphs using ggplot 
+</p>
+
+``` {r}
+#' ------------------------------------------------------------------- '#
+#'  Grammar of Graphics can be clearly seen with qplot and ggplot 
+#'  To run ggplot functions, you need to install tidyverse library. ggplot2
+#'  comes with tidyverse. You can load it using: library(ggplot2)
+#'  We will start with a simple scatter plot displaying the same X & Y 
+#'  Columns ( areaInSft and housePrice)
+#'  While working on this data, there is a placeholder to work simultaneously 
+#'  on Diamonds dataset 
+#' ------------------------------------------------------------------- '#
+library(ggplot2)
+qplot(areaInSft, housePrice) # Observe that the graph is generated using vectors.
+# If data frame related columns are to be used, then data = should be used. 
+# Implement the same type of graph using diamonds dataset between price & carat
+
+```
+``` {r}
+#' ------------------------------------------------------------------- '#
+#'  Same plot that qplot has generated is implemented using ggplot2  
+#'  For practice, implement  using price & carat columns of diamonds 
+#' ------------------------------------------------------------------- '#
+library(ggplot2)
+ggplot() + # If using diamonds, pass the data frame here. 
+  geom_point(mapping = aes(x = areaInSft, y = housePrice))
+
+```
+
+``` {r}
+# Draw a average smoothing line across points 
+qplot(areaInSft, housePrice, geom = c("point", "smooth")) 
+``` 
+
+``` {r}
+# ggplot expects a data frame as input. Here, both areaInSft, housePrice are two double vectors. 
+# Hence, having no data frame as input is represented with an empty argument in ggplot function before ,
+ggplot(,aes(areaInSft, housePrice)) + 
+    geom_point() +
+    geom_smooth()
+```
+``` {r}
+print("Please draw a scatter plot between displ & hwy variables of mpg dataset with a smoothing line ")
+```
+
+``` {r}
+# Facets create multiple plots between same set of variables on a certain category
+# e.g., if there are 5 types of diamond cuts that are possible, the diamonds dataset can be divided into 
+# five groups. Five different scatter plots can be created using facets between these groups. 
+# Facets make the plot function more efficient, visually colorful, and elegant with multiple options to customize
+areaInThousandsSft <- areaInSft/1000
+qplot(areaInThousandsSft, housePrice, 
+      facets = .~schoolRating, 
+      color = schoolRating,
+      geom = c("point", "smooth")
+      )
+```
+
+``` {r}
+# Same implementation with ggplot 
+areaInThousandsSft <- areaInSft/1000
+housingDF <- data.frame(schoolRating = schoolRating, 
+                           areaInSft = areaInSft, 
+                           crimeRate = crimeRate, 
+                           businesses = businesses, 
+                           areaInThousandsSft = areaInThousandsSft, 
+                           housePrice = housePrice)
+ggplot(housingDF, aes(areaInThousandsSft, housePrice)) + 
+    geom_point(aes(color = schoolRating)) +
+    facet_grid(.~schoolRating) + 
+    geom_smooth()
+```
+
+``` {r}
+# Same implementation with ggplot in more elegant fashion by giving each of the type of 
+# school raing a separate color. Observe the "aesthetics" enforced onto geom_point 
+# geom_point uses the aes function to provide aesthetics to the points. 
+areaInThousandsSft <- areaInSft/1000
+housingDF <- data.frame(schoolRating = schoolRating, 
+                           areaInSft = areaInSft, 
+                           crimeRate = crimeRate, 
+                           businesses = businesses, 
+                           areaInThousandsSft = areaInThousandsSft, 
+                           housePrice = housePrice)
+ggplot(housingDF, aes(areaInThousandsSft, housePrice)) + 
+    geom_point(color = schoolRating) +
+    facet_grid(.~schoolRating) + 
+    geom_smooth()
+```
+
+``` {r}
+# Complete graph implementation with axis labels and title  
+areaInThousandsSft <- areaInSft/1000
+housingDF <- data.frame(schoolRating = schoolRating, 
+                           areaInSft = areaInSft, 
+                           crimeRate = crimeRate, 
+                           businesses = businesses, 
+                           areaInThousandsSft = areaInThousandsSft, 
+                           housePrice = housePrice)
+ggplot(housingDF, aes(areaInThousandsSft, housePrice)) + 
+    geom_point(color = schoolRating) +
+    facet_grid(.~schoolRating) + 
+    geom_smooth() +
+    #labs(x = "Area of house in thousands of Sq. ft ",
+    #     y = "House price in $100,000 ",
+    #     title = " Exploratory Data Analysis of Housing prices ") +
+    #theme(plot.title = element_text(hjust = 0.5)) +
+    
+    #'  -----------------------------------------------  '#
+    #'   Either of the options work to update the axes   '#
+    #'  -----------------------------------------------  '#
+    xlab("Area of house in thousands of Sq. ft ") +
+    ylab("House price in $100,000 ") +
+    ggtitle(" Exploratory Data Analysis of Housing prices " ) +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Please practice the last set of graphs using the diamonds and mpg data frames.
