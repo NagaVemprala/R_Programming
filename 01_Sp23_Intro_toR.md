@@ -391,7 +391,7 @@ now <- Sys.time()
 print(now) # Prints current date time 
 ```
 
-    ## [1] "2023-02-13 15:47:02 PST"
+    ## [1] "2023-02-14 10:36:45 PST"
 
 ``` r
 print(typeof(now)) # Prints "double"
@@ -411,7 +411,7 @@ now <- unclass(now)
 print(now)
 ```
 
-    ## [1] 1676332022
+    ## [1] 1676399805
 
 **Factors**
 
