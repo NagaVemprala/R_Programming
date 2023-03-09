@@ -1,0 +1,215 @@
+---
+title: "Classification using Logistic Regression"
+author: "Naga Vemprala"
+date: '2023-03-08'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Datascience problem - 
+
+#### The bank dataset contains 16 dimensions of customer information and one dependent variable indicating whether or not the customer opened a term deposit account. Now, it must be determined which customer is most likely to purchase a term deposit.
+
+- 1. Understanding the data is the initial step of any data science project. A summary of the data provides insight regarding any missing values, the range of values in a continuous variable, and the occurrence frequency of values for categorical data.   
+- Read the data and print summary statistics 
+```{r read_data}
+bankData <- read.csv(paste0(getwd(),"/Datasets/bank/bank-full.csv"), sep = ";")
+summary(bankData)
+```
+
+- From the above summary statistics, we can confirm that there are no missing values in any variable. There are 45,211 observations in the dataset. The output variable (DV) is a character value. 
+
+The output variable has only two possibilities and the frequency can be displayed using the table function. However, the character output is not suitable for regression analysis. Therefore, to fit the logistic regression model, this output variable should be converted to a numeric 0 and 1 variable. 
+```{r output_variable_analysis}
+table(bankData$y)
+```
+
+```{r convert_dv_to_numeric}
+bankData$y <- ifelse(bankData$y == "yes", 1, 0)
+```
+
+- Now it is time to explore other chatagorical variable to see what possible values exist for each of these variables. 
+```{r frequency_analysis_of_categorical_variables}
+cateorical_variables <- !sapply(bankData, is.numeric)
+lapply(bankData[,cateorical_variables], table)
+
+```
+
+- From the above frequency table, it appears that the greatest number of contacts were made in May, followed by July and June; therefore, they are all related to a single season and, in most cases, the month would not have influenced a person's decision to purchase a term insurance policy.
+
+Similar analogy applies to the column "day", which would not impact the outcome. 
+
+- Running a logistic regression using raw data. We are not normalizing the continuous variables as well.     
+- To create a logistic regression model, we need a training sample to fit the model and a test sample to test the model fitness.      
+- Setting a seed to a constant value so that the results could be reproducible (However, the reproducibility depends on the R version)     
+```{r train_test_indicator}
+set.seed(1234)
+train_test_ind <- sample(c("for_fit", "for_test"), nrow(bankData), 
+                         replace = T, prob = c(0.85, 0.15))
+train <- bankData[train_test_ind == "for_fit",]
+test <- bankData[train_test_ind == "for_test",]
+```
+
+- Using the train dataset fit a logistic regression 
+
+```{r model_fit}
+cat_model_logit <- glm(y ~., 
+                       data = train[!colnames(bankData) %in% c("day", "month")],
+                       family = "binomial")
+summary(cat_model_logit)
+```
+
+- Let's pick a single variable, education, to understand the model coefficients. Education has four possible values: primary, secondary, tertiary, and unknown. 
+- Since those with a tertiary education are expected to have higher salary ranges, we can hypothesize that the likelihood of purchasing a term deposit increases from primary to secondary to tertiary education.     
+
+Looking at the coefficients:        
+- educationsecondary  1.362e-01  6.825e-02   1.996 0.045987 *            
+- educationtertiary   3.644e-01  7.955e-02   4.580 4.65e-06 ***      
+- educationunknown    2.870e-01  1.084e-01   2.648 0.008098 **         
+  
+Primary education status is taken as base (As the variable name is not appearing here). However, do we really need to consider "primary" education as base? If not, we need to relevel the variables. We will do it later. First, lets check the log-odds. 
+- Log-odds are easy to interpret while considering a logistic regression.      
+
+```{r log-odds}
+log_odds <- exp(cat_model_logit$coefficients)
+log_odds
+```
+
+Taking the log-odds of these coefficients, we get:     
+
+|**educationsecondary**|**educationtertiary**|**educationunknown**|
+|----|----|----|
+|1.14590976|1.43959377|1.33238807|
+
+The logistic regression model uses primary education as its baseline. If a person has a secondary education (higher than a primary education), the probability of that person taking out a term deposit is greater than 100 percent and is a factor of 1.14590976 or 114.6%.
+This factor or ratio value of 1.14590976 is called the odds ratio. The odds ratio is the ratio of the probability of an event occurring to the probability of the event not occurring. If the probability of an event occurring exceeds the probability of the event not occurring, then the ratio exceeds 1.
+
+- Next we will create factor variables to correctly represent these categorical values. 
+- Do we need to be accurate with the levels. The answer is "No". Model will take care of it and our final significance values do not change with the change in the level values. 
+
++ job: Hierarchy --> unknown < unemployed < housemaid < retired < student < blue-collar < admin. < technician < services < management < self-employed < entrepreneur
+
+
++ marital: Hierarchy --> single < married < divorced
+
++ education: Hierarchy -->  unknown < primary < secondary < tertiary
+
+- Has credit in default? No is better
++ default: Hierarchy -->  yes < no 
+
+- Has housing loan? Maybe having a loan makes someone more responsible. 
++ housing: Hierarchy -->  no < yes  
+
+- Has housing loan? Maybe having a loan makes someone more responsible. 
++ loan: Hierarchy -->  no < yes  
+
+- How did the marketing team reached out to the individuals for taking term deposit? 
++ contact: Hierarchy -->  unknown < telephone < cellular
+
+- What was the previous outcome on other campaigns. This variable could provide information about how easy it to convince a customer
++ poutcome: Hierarchy -->   > failure < unknown < other < success
+
+
+```{r creating_factor_levels}
+bankData$job <- factor(bankData$job, levels = c("unknown" , "unemployed" , "housemaid" , "retired" , "student" , "blue-collar" , "admin." , "technician" , "services" , "management" , "self-employed" , "entrepreneur"))
+
+bankData$marital <- factor(bankData$marital, levels = c("single" , "married" , "divorced"))
+
+bankData$education <- factor(bankData$education, levels = c("unknown" , "primary" , "secondary" , "tertiary"))
+
+bankData$default <- factor(bankData$default, levels = c("yes", "no"))
+
+bankData$housing <- factor(bankData$housing, levels = c("no", "yes"))
+
+bankData$loan <- factor(bankData$loan, levels = c("no", "yes"))
+
+bankData$contact <- factor(bankData$contact, levels = c("unknown", "telephone", "cellular"))
+
+bankData$poutcome <- factor(bankData$poutcome, levels = c("failure", "unknown", "other", "success"))
+
+```
+
+
+- Lets retrain the model and look at the coefficients.  
+
+```{r retrain_model_after_setting_factor_levels}
+train <- bankData[train_test_ind == "for_fit",]
+test <- bankData[train_test_ind == "for_test",]
+cat_model_logit <- glm(y ~., 
+                       data = train[!colnames(bankData) %in% c("day", "month")],
+                       family = "binomial")
+log_odds <- exp(cat_model_logit$coefficients)
+log_odds
+```
+
+- This time lets analyze another variable, marital status.
+- The log odds ratios are: 
+
+|**maritalmarried**|**maritaldivorced**|
+|----|----|
+|0.73189471|0.86769347|
+
+
+
+Being married has less probability of taking a term deposit when compared to single individuals. Same thing with the divorced individuals. Singles are more probable to take term deposit than the divorced individuals as the factor is less than 1. 
+
+- Now it is time to make predictions. 
+- First, we will start with making predictions on training dataset, to see how well did we fit the logistic regression model. The overall significance of the model and the model parameters alone are not sufficient for evaluating the model fit. We need to make predictions with greater accuracy.  
+
+```{r train_accuracy}
+predict_training_outcome <- predict(cat_model_logit, 
+                                    train[!colnames(bankData) %in% c("day", "month")], 
+                                    type = "response")
+# The predicted outcome is between 0 and 1. If the value is greater than 0.5, it can be considered as 1
+predict_training_outcome <- ifelse(predict_training_outcome > 0.5, 1, 0)
+
+# Get the accuracy using the training sample 
+# First create a confusion matrix or contingency table 
+confusionMatrix <- table(train$y, predict_training_outcome)
+confusionMatrix <- as.data.frame(confusionMatrix) 
+colnames(confusionMatrix) <- c("true_outcome", 
+                               "predicted_outcome", 
+                               "frequency")
+accuracy <- sum(confusionMatrix[
+  confusionMatrix$true_outcome == confusionMatrix$predicted_outcome, "frequency"]) /
+  sum(confusionMatrix$frequency)
+accuracy
+```
+
+- An accuracy of 90% using training sample is good. However, it has to be consistent with the test sample as well. 
+- Capture the accuracy on the test sample. 
+- However, the glm model need not be fit again. The fitted model is to be tested using the test sample 
+
+```{r test_model_fit}
+predict_test_outcome <- predict(cat_model_logit, 
+                                    test[!colnames(bankData) %in% c("day", "month")], 
+                                    type = "response")
+# The predicted outcome is between 0 and 1. If the value is greater than 0.5, it can be considered as 1
+predict_test_outcome <- ifelse(predict_test_outcome > 0.5, 1, 0)
+
+# Get the accuracy using the training sample 
+# First create a confusion matrix or contingency table 
+confusionMatrix <- table(test$y, predict_test_outcome)
+confusionMatrix <- as.data.frame(confusionMatrix) 
+colnames(confusionMatrix) <- c("true_outcome", 
+                               "predicted_outcome", 
+                               "frequency")
+accuracy <- sum(confusionMatrix[
+  confusionMatrix$true_outcome == confusionMatrix$predicted_outcome, "frequency"]) /
+  sum(confusionMatrix$frequency)
+accuracy
+```
+- Finally, create a visual representation of the confusion matrix (special type of contingency table)
+
+```{r plot_confusion_matrix}
+library(ggplot2) 
+ggplot(data = confusionMatrix, mapping = aes(x = true_outcome, y = predicted_outcome)) + 
+  geom_tile(fill=c("green", "red", "red", "green")
+            ) +
+  geom_text(aes(label = frequency))
+```
+
+
