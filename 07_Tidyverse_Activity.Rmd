@@ -1,0 +1,372 @@
+---
+title: "tidytext In_Class Assignment"
+author: Naga Vemprala    
+date: '2023-03-23'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The questions in this markdown must be answered using the tidyr and dplyr packages' functions. 
+#### The tidyverse functionality is greatly enhanced using the pipes (%>% from magrittr)
+#### Load the required packages before starting the assignment. 
+#### Questions 1 through 11 are related to tidyr (with one exception of using a base function - "replace")
+#### Questions 12 through 11 are related to tidyr (with one exception of using a base function - "replace")
+
+```{r Q1. religious_income}
+# Take a look at the religious income dataset, relig_income and answer if the dataset is a tidy dataset. 
+# If not, why is it not a tidy dataset?
+# Tidy the dataset using pivot_longer transformation. 
+#you have to load the tidyverse package: all the functions follow snake naming convention
+library(tidyverse)
+relig_income %>%
+  pivot_longer(cols= -religion, names_to="income_range",values_to="income")
+
+```
+
+
+``` {r Q2. transform_subset_of_columns}
+library(tidyverse)
+student_scores <- tribble(
+  ~name, ~bus101, ~bus201, ~eco101, ~fin101, 
+  "Billy", 90, 96, 70, 76, 
+  "Suzy", 82, 76, 78, 86,
+  "Lionel", 68, 56, 79, 82, 
+  "Jenny", 72, 96, 71, 90,
+)
+
+# Merge the Business courses into a single column with the name "Business Courses" and the corresponding values from their respective column names. While saving the values, only use numeric course numbers 101 and 201. 
+# Use names_prefix to supress character values from the column names 
+
+student_scores %>%
+  pivot_longer(cols=c("bus101","bus201"),names_to="Business_Courses",values_to="Score",names_prefix = "bus")
+
+```
+
+
+``` {r Q4. Split the Business courses and course numbers}
+# Use the names pattern function to split required values. The value "bus101" should be split such that "bus" appears in the "major" column and "101" appears in the "course id" column.
+# Use names_pattern to specify how each column should be split into the specified number of columns.
+# Use names_to to provide the names of the new columns. 
+student_scores %>%
+  pivot_longer(cols= -name,names_to=c("Major","Courses"),values_to="Score",names_pattern="([a-z]{3})(0-9){3}")
+
+```
+
+
+
+``` {r Q5. }
+# Take a look at each of these tables and anwer which table is tidy and which tables are not tidy. 
+# table1 -tidy
+# table2- untidy (we have to create separate columns for cases and population rows)
+# table3- it has a composite variable
+# table4a- cases- untidy- both the columns are  year so should not be separate
+# table4b- population - untidy- both the columns are  year so should not be separate
+
+#'table1, table2, table3, table4a, table4b, and table5 all display the number of  TB cases documented by the World Health Organization in Afghanistan, Brazil, and China between 1999 and 2000. The data contains values associated with four variables (country, year, cases, and population), but each table organizes the values in a different layout. 
+#'The data is a subset of the data contained in the World Health Organization Global Tuberculosis Report
+
+```
+
+
+
+``` {r Q6. Split the data from type into two columns, with cases and population as column names}
+# Using table2, split the "type" column into two columns, with cases and population as column names. Use pivot_wider() function  
+
+table2 %>%
+  pivot_wider(names_from=type,values_from=count)
+```
+
+
+``` {r Q7. Separate the rate column into two columns, cases and population}
+# Using table3, separate the rate column into two columns, cases and population. Use separate() function 
+
+table3 %>%
+  separate(col=rate,into=c("cases","population"),sep="/")
+```
+
+
+``` {r Q8. combine the day, month, and year into DOB column}
+student_details <- tribble(
+  ~name, ~day, ~month, ~year, ~"pass/fail", 
+  "Billy", 15, 04, 96, "Pass", 
+  "Suzy", 21, 10, 98, "Fail",
+  "Lionel", 27, 09, 97, "Pass", 
+  "Jenny", 01, 04, 99, "Pass"
+)
+
+student_details %>%
+  unite(col="DOB",
+          c("day","month","year"), sep="/")
+```
+
+
+``` {r Q9. Populate all columns}
+# Use the complete() function of tidyr to insert rows with all possible combinations of name and course columns. 
+student_scores <- tribble( 
+  ~name, ~course, ~score, 
+  "Billy", "bus101", 90,
+  "Billy", "fin101", 76,
+  "Suzy", "bus101", 82,
+  "Suzy", "bus201", 76,
+  "Suzy", "eco101", 78,
+  "Suzy", "fin101", 86,
+  "Lionel", "bus101", 68,
+  "Lionel", "bus201", 56,
+  "Lionel", "eco101", 79,
+  "Lionel", "fin101", NA )
+
+student_scores %>%
+  complete(name,course)
+```
+
+
+``` {r Q10. Replace the negative numbers with 0}
+# Find the indexes or row numbers of sleep dataset that has negative numbers in extra column 
+# Make sure that the indexes are of integer type (Numeric)
+
+# Use replace function to the negative numbers with 0
+
+View(sleep)
+replace(sleep$extra,as.integer(row.names(sleep[sleep$extra<0,])),0)
+
+```
+
+
+``` {r Q11. use replace_na() to replace NA with "Not Registered"}
+# tibble will not accept a character data in a double coulmn. Therefore, replacing NA by 0.0 
+student_scores <- tribble(
+  ~name, ~course, ~score,
+
+  "Billy",  "bus101", 90,
+  "Billy",  "bus201", NA,
+  "Billy", "eco101", NA,
+  "Billy", "fin101", 76,
+  "Lionel", "bus101", 68,
+  "Lionel", "bus201", 56,
+  "Lionel", "eco101", 79,
+  "Lionel", "fin101", NA,
+  "Suzy", "bus101", 82,
+  "Suzy", "bus201", 76,
+  "Suzy", "eco101", 78,
+  "Suzy", "fin101", 86
+)
+student_scores %>%
+  replace_na(list(score=0.0))
+``` 
+
+#### dplyr functions 
+
+```{r Q12. inner_join and semi_join - What is the difference?}
+
+superheroes <- tibble::tribble(
+       ~name, ~alignment,  ~gender,          ~publisher,
+   "Magneto",      "bad",   "male",            "Marvel",
+     "Storm",     "good", "female",            "Marvel",
+  "Mystique",      "bad", "female",            "Marvel",
+    "Batman",     "good",   "male",                "DC",
+     "Joker",      "bad",   "male",                "DC",
+  "Catwoman",      "bad", "female",                "DC",
+   "Hellboy",     "good",   "male", "Dark Horse Comics"
+  )
+
+publishers <- tibble::tribble(
+  ~publisher, ~yr_founded,
+        "DC",       1934L,
+    "Marvel",       1939L,
+     "Image",       1992L
+  )
+
+# Use inner_join to join superheroes and publishers on publisher column.
+superheroes %>%
+  inner_join(publishers)
+
+# Use semi_join to join superheroes and publishers on publisher column.
+superheroes %>%
+  semi_join(publishers)
+# What is the difference between these two types of joins? 
+#ANSWER:
+#inner_join() is taking the yr_founded also in the answer but the semi_join() is ignoring the yr_founded in the final result
+# Just like a left join in SQL 
+
+```
+
+
+```{r Q13. Filter rows by one or more column conditions}
+# Display the diamond count by cut and color. Include only the rows with a diamond count greater than 300.
+
+diamonds%>%
+  group_by(cut,color) %>%
+  summarize(count_records=n())%>%
+  filter(count_records>300)
+
+
+```
+
+```{r just_for_fun_with_filter}
+library(nycflights13) # Requires package installation
+ 
+airports %>% filter(faa %in% c("PDX", "DCA", "LNK", "JAC", "SAT", "ORD", "MIA") ) %>% 
+  ggplot() +
+     borders("state", colour = "blue") +
+     geom_point(aes(lon, lat)) + 
+     geom_text(aes(lon, lat, label = name), color = "brown", vjust = 1.25)+
+     coord_quickmap()
+
+```
+
+``` {r Q14. Slice the dataset diamonds}
+# Using slice function fetch the rows from 10th row to 15th row
+
+# Uncomment the code below to complete the response 
+# diamonds %>% 
+#  slice()
+
+diamonds %>% 
+  slice(10:15)
+```
+
+
+``` {r Q15. Using mutate, normalize diamonds price}
+# Using mutate function create a normalized price value. Create a new column price_normal
+# price_normal is (price - mean(price))/ standard_deviation(price)
+# No need to save the output dataset to a new diamonds dataset 
+# Verify that the new column was created correctly by including the following line of code at the end of the pipe operation
+# filter(price == 3932 | price == 3935)
+
+summary(diamonds$price)
+sd(diamonds$price)
+
+diamonds %>%
+  mutate(normal_price=(price-mean(price))/sd(price)) %>% 
+  filter(price == 3932 | price == 3935)
+
+```
+
+
+
+#### The scoped variants of mutate() and transmute() make it easy to apply the same transformation to multiple variables. There are three variants:
+
+- _all affects every variable    
+
+- _at affects variables selected with a character vector or vars()    
+
+- _if affects variables selected with a predicate function:    
+``` {r Q16. using mutate_at add $10 to the price}
+# using mutate_at add $10 to the price
+# This is the syntax of mutate_at
+# mutate_at(.tbl, .vars, .funs, ..., .cols = NULL) 
+
+increment_10 <- function(x) { x + 10}
+diamonds %>% 
+  mutate_at(.vars = c("price"), 
+            .funs = increment_10)
+
+diamonds %>% 
+  mutate_at(.vars = c("price"), 
+            .funs = function(x) x + 10)
+
+diamonds %>% 
+  mutate_at(.vars = c("price", "depth"), 
+            .funs = function(x) x + 10)
+
+diamonds %>% 
+  mutate_at(.vars = c("price"), 
+            .funs = list(new_price = function(x) x + 10))
+
+```
+
+
+``` {r Q17. Use mutate across to add $10 to the price}
+# using mutate across, add $10 to the price. mutate across is the preferred method. 
+# use mutate(across( .. rest all should be the same
+# mutate(across(.cols = everything(), .fns = NULL, ..., .names = NULL) 
+
+diamonds %>% 
+  mutate(across(.cols = "price", 
+                .fns = function(x) x + 10))
+
+
+```
+
+
+``` {r Q18. using mutate_if increase price by $10}
+# using mutate_if increase price by $10
+# mutate_if(.tbl, .predicate, .funs, ...)
+diamonds %>% 
+  mutate_if(colnames(.) == "price", .funs = function(x) x + 10)
+
+```
+
+
+``` {r Q19. using mutate create a discounted_price}
+# using mutate function add a new column to the diamonds dataset called discounted_price to capture discounted price depending on the cut of the diamond.  
+# if "Fair" - price*.90, if "Good" - price*.85, if "Very Good" - price*.80, if "Premium" - price*.75, if "Ideal" - price*.75
+
+diamonds %>% 
+  mutate(discounted_price = case_when(cut == "Fair" ~ 0.9*price, 
+                                      cut == "Good" ~ 0.85*price, 
+                                      cut == "Very Good" ~ 0.8*price, 
+                                      cut == "Premium" ~ 0.75*price, 
+                                      TRUE ~ 0.75*price)
+         )
+
+```
+
+
+
+``` {r Q20. Sort the diamonds dataset by cut and select 3 columns}
+# sort the diamonds dataset by cut column and select, price, cut and depth columns 
+diamonds %>% 
+  arrange(desc(cut)) %>% 
+  select(price, cut, depth)
+```
+
+
+``` {r Q21. summarize the diamonds dataset and calculate mean_price, mean_depth, variance_x}
+# Using the diamonds dataset and summarize function, calculate the mean_price, mean_depth, and variance_x (using x variable) 
+diamonds %>%
+ group_by(cut) %>%
+  summarize(mean_price=mean(price),
+            mean_Depth=mean(depth),
+            variance_x=sd(x)^2)
+```
+
+
+``` {r Q22. Create a cumulative hourly increase of 0.001 in the average crypto price. }
+# Complete the code below to generate a dataset containing the datetime and price of a fictitious cryptocoin with a consistent hourly increase of 0.001 in value.)
+library(lubridate)
+total_hours <- ymd_hms("2023-03-01 00:00:00") + 0:200*24 # Some 200 random days
+# Uncomment the line of code below to complete a mutate & a cumsum function and create a variable that stores the cumulative price increase. Utilize a rnorm with a mean of 0.001 and a standard deviation of 0.01
+
+crypto_price <- as.tibble(total_hours) %>% 
+  mutate(price = 0.07 + cumsum(rnorm(n(), mean = 0.001, sd = 0.01)))
+# View(crypto_price)
+plot(x = crypto_price$value, y = crypto_price$price)
+
+```
+
+``` {r 23. create a union of the diamonds1 and diamonds2 datasets}
+# create a union of the diamonds1 and diamonds2 datasets
+# Look at the cheatsheet for understanding these functions. Also, please pay attention to the intersect function you are using. 
+diamonds1 <- diamonds[diamonds$depth < 50,]
+diamonds2 <- diamonds[diamonds$depth < 55,]
+diamonds1 %>%
+  dplyr::union(diamonds2)
+```
+
+``` {r 24. create a intersection of the diamonds1 and diamonds2 datasets}
+# create a intersection of the diamonds1 and diamonds2 datasets
+diamonds1 %>% 
+  dplyr::intersect(diamonds2)
+
+```
+
+
+``` {r 25. use setdiff function of dplyr to find the rows that differ diamonds1 and diamonds2 datasets}
+# use setdiff function of dplyr to find the rows that differ diamonds1 and diamonds2 datasets
+diamonds2 %>% 
+  dplyr::setdiff(diamonds1)
+```
