@@ -1,0 +1,222 @@
+---
+title: "Probability, ANOVA and Regression"
+author: "Naga Vemprala"
+date: "2023-03-17"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Probability distributions
+
+- Some of the code snippets are taken from the "R Cookbook" textbook, chapter 8. 
+
+- r<distribution name> 
+
+- rnorm()
+- dnorm() # Y-axis  
+- pnorm() 
+- qnorm() # x-axis 
+
+```{r probability_functions}
+var1 <- rnorm(10)
+print("Random 10 normally distributed values with mean 0 and sd 1: ")
+print(var1)
+
+var1 <- rnorm(10, mean = 5, sd = 0.75) 
+print("Random 10 normally distributed values with mean 5 and sd 0.75: ")
+print(var1)
+
+# The below function should return highest density.
+print(dnorm(5, mean = 5, sd = 0.75))
+
+# Relatively less densest point than the point with value of 5. 
+print(dnorm(4, mean = 5, sd = 0.75))
+
+# dnorm returns the y-axis value. 
+var1 <- rnorm(1000, mean = 5, sd = 0.75) 
+library(ggplot2)
+ggplot(as.data.frame(var1)) + 
+    geom_density(aes(x = var1))
+```
+
+
+```{r probability_functions_normal}
+# qnorm x-axis value at a particular proportion 
+qnorm(0.4, mean = 5, sd = 0.75)
+
+# What percentage of values are less than a given input value from a normal distribution with a mean of 5 and sd of 0.75
+print(pnorm(3, mean = 5, sd = 0.75)) # This proportion value should be small as the sd is small 
+
+print(pnorm(3, mean = 5, sd = 1.5)) # This proportion value should be larger the previous one because the sd is greater than 0.75
+```
+
+```{r probability_functions_binomial}
+# create a random binomial distribution of 30 elements with size of 10 and probability of success is 0.3
+var2 <- rbinom(30, size = 10, prob = 0.3)
+#print(var2)
+hist(var2)
+
+# What is the density of having 6 wins out of 10 trials (60% win in a given sample) with a win - rate of 30% 
+dbinom(6, size = 10, prob = 0.3) # This should be a small value 
+
+# What is the density of having 3 wins out of 10 trials (30% win in a given sample) with a win - rate of 30% 
+dbinom(3, size = 10, prob = 0.3) # This should be a higher value than the previous density function. Because 3 out of 10 successes should be expected to be high from a binomial distribution with success rate of 30% out of 10 trials size. 
+
+
+qbinom(0.5, size = 10, prob = 0.3)
+
+# Binomial distributions with varying trial sizes 
+sample_size <- 1:20
+ggplot(data = as.data.frame(sample_size)) + 
+    geom_line(aes(x = sample_size, y = dbinom(sample_size, size = 10, prob = 0.3)), color = "green") + 
+    geom_line(aes(x = sample_size, y = dbinom(sample_size, size = 15, prob = 0.3)), color = "red") + 
+    geom_line(aes(x = sample_size, y = dbinom(sample_size, size = 20, prob = 0.3)), color = "blue") 
+
+```
+#### The Poisson distribution is a probability distribution that is used to model the probability that a certain number of events occur during a fixed time interval when the events are known to occur independently and with a constant mean rate.
+
+For example, suppose a given call center receives 10 calls per hour. We can use a Poisson distribution calculator to find the probability that a call center receives 0, 1, 2, 3 … calls in a given hour:
+
+- P(X = 0 calls) = 0.00005
+- P(X = 1 call) = 0.00045
+- P(X = 2 calls) = 0.00227
+- P(X = 3 calls) = 0.00757
+
+**Reference:**[Poisson Distribution](https://www.statology.org/poisson-distribution-real-life-examples/)
+
+
+```{r probability_functions_poisson}
+# 
+var3 <- rpois(12, 3)
+var3
+
+print(dpois(5, lambda = 3)) # This should be a small value 
+
+print(dpois(4, lambda = 3)) # A higher density value should return than the previous one 
+
+print(dpois(3, lambda = 3)) # exactly equal to 3, therefore, this is the highest density point. 
+
+# Increase the lamdba, the poisson distribution should approach a normal distribution 
+
+sample_size <- 1:40
+ggplot(data = as.data.frame(sample_size)) + 
+    geom_line(aes(x = sample_size, y = dpois(sample_size, lambda = 5)), color = "green") + 
+    geom_line(aes(x = sample_size, y = dpois(sample_size, lambda = 15)), color = "red") + 
+    geom_line(aes(x = sample_size, y = dpois(sample_size, lambda = 20)), color = "blue")
+
+```
+
+## ANOVA - Analysis of Variance 
+Analysis of variance (ANOVA) is a collection of statistical models and their associated estimation procedures (such as the "variation" among and between groups) used to analyze the differences among means.
+
+- Is there a significant difference between the average sizes of garlic bulbs treated with four distinct fertilizers?
+
+```{r}
+garlicBulbs <- read.csv(paste0(getwd(), "/Datasets/GarlicBulbSizes.csv"))
+ggplot(data = garlicBulbs) + 
+    geom_boxplot(aes(x = BulbSize)) +
+    facet_grid(~BulbType) + 
+    coord_flip()
+```
+
+```{r base_boxplot}
+groupMeans <- sapply(split(garlicBulbs$BulbSize, garlicBulbs$BulbType), 
+                     mean)
+boxplot(BulbSize ~ BulbType, data = garlicBulbs) 
+points(groupMeans, col = "red", pch = 16)
+```
+
+
+
+
+```{r garlic_bulbs_anova}
+anovaModel <- oneway.test(garlicBulbs$BulbSize ~ garlicBulbs$BulbType)
+anovaModel
+```
+```{r aov_tukeyHSD}
+anovaModel <- aov(garlicBulbs$BulbSize ~ factor(garlicBulbs$BulbType))
+plot(TukeyHSD(anovaModel))
+```
+
+
+ 
+#### Manually calculate the F- Statistic 
+
+F = SSB / SSW 
+
+```{r F-Statistic-Manually}
+SSW <- function(x, mean_x) {
+    sum( (x-mean_x)^2)
+}
+
+withInGroupVariation <- sum(mapply(FUN=SSW,
+                                   split(garlicBulbs$BulbSize, garlicBulbs$BulbType),
+                                   groupMeans))
+withInGroupVariation <- withInGroupVariation/28 # Correcting it for degrees of freedom
+betweenGroupVariation <- sum( 8 * (groupMeans - mean(garlicBulbs$BulbSize) )^2 ) 
+betweenGroupVariation <- betweenGroupVariation / 3 # Correcting it for degrees of freedom 
+F_statistic <- betweenGroupVariation / withInGroupVariation
+p_value <- 1 - pf(F_statistic, 28, 3)
+print(paste("F_statistic:", F_statistic, "& ", "p_value:", p_value))
+
+```
+
+#### Regression analysis 
+
+
+```{r regression_analysis}
+carSales <- read.csv(paste0(getwd(), "/Datasets/Car_sales.csv"))
+summary(carSales)
+```
+ 
+``` {r remove_character_data}
+carSales <- carSales[, -3]
+```
+
+
+``` {r data_processing}
+# Replace NA values with the means 
+imputeMeans <- function(x) {
+    ifelse(is.na(x), mean(x, na.rm = T), x)
+}
+
+carSales <- as.data.frame(sapply(carSales, imputeMeans))
+summary(carSales)
+```
+
+```{r correlation_analysis}
+correlation_matrix <- as.data.frame(cor(carSales))
+```
+
+``` {r carSales_dataset}
+carsales_model <- lm(Price_in_thousands ~ . , data = carSales)
+summary(carsales_model)
+```
+
+#### Analyzing models using the AIC - Maximum Likelihood estimation
+
+- Refer R Cookbook for forward pass and backward pass model selection.
+
+```{r model_selection}
+min.model <- lm(Price_in_thousands ~ 1, data=carSales)
+fwd.model <- step(min.model, 
+                  direction = "forward", 
+                  scope = (Price_in_thousands ~ Sales_in_thousands + 
+                    Resale_value        + 
+                    Engine_size        +
+                    Horsepower         +
+                    Wheelbase           +
+                    Width              +
+                    Length             +
+                    Curb_weight         +
+                    Fuel_capacity      +
+                    Fuel_efficiency     +
+                    Power_perf_factor)
+)
+summary(fwd.model)
+```
+
+#### Price_in_thousands ~ Power_perf_factor + Horsepower + Engine_size + Resale_value + Curb_weight + Fuel_efficiency + Length
