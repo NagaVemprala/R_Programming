@@ -1,0 +1,398 @@
+---
+title: "Object Oriented Programming with R"
+author: "Vemprala"
+date: '2023-04-15'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## OOPS - Object Oriented Programming 
+
+- Everything that exists in R is an object”. However, while everything is an object, not everything is object-oriented.    
+- The main reason to use OOP is polymorphism.   An object/function can be reused in multiple ways without changing the way it can be used. It can be achieved by separating the implementation from its interface (how it is used). Hiding the nuts and bolts from user, which is also called "Encapsulation".     
+- In a typical OOP implementation, we have a class and it has fields and methods. Class is a blueprint and multiple copies can be created using the blueprint. Each of these instances can hold specific values of the fields and can implement all the methods of the class in a common way. The method of a class can be called using the instance instance_john.method(age_argument, car_argument)    
+- However, in R, eventhough the language supports OOP, we call a function without creating an object and the function can run in multiple ways depending on the type of arguments the function takes. This is the concept of polymorphism that comes into play with functional OOP concept.    
+- To understand the OOP concepts better, install "sloop" package.   
+
+#### There are three systems of OOP exist with R. 
+- S3 is R’s first OOP system, simple, with generic implementation of OO. S3 is the only OO system used in the base and stats packages, and it’s the most commonly used system in CRAN packages
+- S4 is a stricter version of OOP, a more rigorous rewrite of S3 
+- R6 Encapsulated OO concept (methods belong to objects) which also helps users to modify the objects. 
+
+**Note: S3 and S4 are built into base but not R6. We need to install a specific package called "R6" to use R6**
+
+```{r load R6 and sloop libraries}
+library(sloop)
+library(R6)
+library(stringr)
+```
+
+
+- The primary use of OO programming in R using S3 is for functions like print, summary and plot methods. These methods allow us to have one generic function, e.g. print(), that displays the object differently depending on its type: printing a linear model is very different to printing a data frame.    
+- predict is another function that is similar to these functions. 
+- To see how many overridden implementations "print" function has, type methods("print")
+- To see if a function is generic, use sloop::ftype("<give the function name>")
+- Check sloop::ftype(summary) & sloop::ftype(paste)
+
+```{r creating class in S3}
+x <- 1
+attr(x, "class") <- "foo"
+x
+```
+
+
+Class is stored as an attribute, but it’s better to modify it using the class() function, since this communicates your intent more clearly:    
+
+```{r S3 creating class using class() method }
+# Alternate implementation: x <- structure(1, class = "foo")
+# Which means the class can be created during the structure or after the fact with class<-()
+class(x) <- "foo"
+
+# All the base objects has a class associated with it. You can unclass to remove the class of an object.
+class(x)
+
+# What happens when you use s3_dispatch(print(x))? Can you trace the output? 
+# Not visible functions are displayed using * 
+```
+
+
+#### Implement some sloop functions 
+
+```{r sloop - s3_dispatch}
+library(forecast)
+model <- auto.arima(AirPassengers)
+s3_dispatch(plot(model))
+```
+
+- Generic methods have class specific implementation. To see what it is, we will override the behavior of print function. 
+
+```{r foo class method dispatch}
+print.foo <- function(x) { 
+  (paste("hahaha, silly, just print this: ", x))
+}
+print(x)
+```
+
+#### Generic functions and method dispatch
+- Method dispatch starts with a generic function that decides which specific method to dispatch to.    
+- Generic functions all have the same form: a call to UseMethod that specifies the generic name and the object to dispatch on. This means that generic functions are usually very simple, like mean:
+
+```{r dont execute code-1, eval=FALSE}
+mean <- function (x, ...) {
+   UseMethod("mean", x)
+ }
+```
+
+Methods are ordinary functions that use a special naming convention: generic.class:
+
+```{r dont execute code-2, eval=FALSE}
+mean.numeric <- function(x, ...) sum(x) / length(x)
+mean.data.frame <- function(x, ...) sapply(x, mean, ...)
+mean.matrix <- function(x, ...) apply(x, 2, mean)
+```
+
+#### Creating classes in S3
+
+```{r Understanding generics in S3}
+f <- factor(c("a", "b", "c"))
+attributes(f)
+```
+
+
+#### Unclass special objects 
+
+```{r understanding generics - unclass}
+what_time_is_it <- as.POSIXlt(lubridate::now())
+str(what_time_is_it)
+
+# POSIXlt is built on top of list. 
+unclass(what_time_is_it)
+```
+
+#### Inheritance in S3 
+- Requires the character vector of class names to be passed to the class attribute of an object, in the order of hierarchy  
+- c("child1","parent1", "grand parent1")   
+- use inherits to check if a class is inherited from a parent class.  
+
+```{r inheritance}
+# Create an object to hold a list of 4 elements 1,2,3,4 and name the class as "first_class"
+x <- structure(list(1,2,3,4), class = "first_class")
+y <- list("a", "b", "c")
+# Convert the object "y" to "y_class" with the parent class as "first_class"
+class(y) <- c("y_class", "first_class")
+inherits(y, "first_class")
+```
+#### Question: 
+- Create a numeric vector of car speeds and turn it into a user defined class "foo"   
+- Run quantile function on this "foo" vector.   
+- The default quantile prints 0%  25%  50%  75% 100%, but the overridden "foo" function should display mean value of the vector when a quantile function is called on the vector 
+
+
+```{r question-1}
+speeds <- cars$speed
+quantile(speeds)
+class(speeds) <- "foo"
+quantile.foo <- function(x) {
+  mean(x)
+}
+quantile(speeds)
+```
+
+#### S4 way of implementing OOP 
+
+> S4 provides a formal approach to functional OOP. The underlying ideas are similar to S3 (the topic of Chapter 13), but implementation is much stricter and makes use of specialised functions for creating classes (setClass()), generics (setGeneric()), and methods (setMethod()). Additionally, S4 provides both multiple inheritance (i.e. a class can have multiple parents) and multiple dispatch (i.e. method dispatch can use the class of multiple arguments).
+
+
+- Create classes using setClass 
+- pass the required field names and the field types to the slots argument. 
+- Create a Fruit_n_Prices class with two fields, name and price  
+
+```{r create S4 class}
+setClass("Fruit_n_Prices", 
+  slots = c(
+    name = "character", 
+    price = "numeric"
+  )
+)
+cabbage <- new("Fruit_n_Prices", name = "Cabbage", price = NA_real_)
+orange <- new("Fruit_n_Prices", name = "Orange", price = 5.12)
+mango <- new("Fruit_n_Prices", name = "Mango", price = 30.0)
+
+mango
+
+```
+
+- Extract the price of orange fruit 
+
+```{r access S4 object elements/fields (members) uses @ operator}
+orange@price
+```
+
+#### R6 way of implementing OOP 
+
+*R6 has two special properties:*
+
+1. It uses the encapsulated OOP paradigm, which means that methods belong to objects, not generics, and you call them like object$method().    
+2. R6 objects are mutable, which means that they are modified in place, and hence have reference semantics.
+
+Important to know three things: 
+1. Creating R6 classes 
+2. Encapsulation 
+3. Mutability 
+
+```{r creating R6 class, eval = F}
+R6Class(
+  classname = NULL,
+  public = list(),
+  private = NULL,
+  active = NULL,
+  inherit = NULL,
+  lock_objects = TRUE,
+  class = TRUE,
+  portable = TRUE,
+  lock_class = FALSE,
+  cloneable = TRUE,
+  parent_env = parent.frame(),
+  lock
+)
+```
+
+> Note about methods inside a R6Class: Side-effect R6 methods should always return self invisibly. This returns the “current” object and makes it possible to chain together multiple method calls:
+
+
+#### Create a R6 class - Example 
+- Refer to [R6 Implementation by Hadley Wicham](https://adv-r.hadley.nz/r6.html)
+
+```{r R6Class Example 1}
+Accumulator <- R6Class("Accumulator", list(
+  sum = 0,
+  add = function(x = 1) {
+    self$sum <- self$sum + x 
+    invisible(self)
+  })
+)
+```
+
+
+#### Create a R6 class - Requirement 1
+1. Name the R6Class as "Product"
+2. Fields of the Product are: product_name, product_price, discount (default it to 0%), price, maximum_discount, and final_price 
+3. Create a method to calculate final_price, as calculated_final_price based on the discount passed. If no discount is passed, use a default discount of 0% 
+
+```{r product_class}
+Product <- R6Class("Product", list(
+  product_name = "",
+  discount = 0, 
+  price = 0, 
+  maximum_discount = 0, 
+  final_price = 0, 
+  calculated_final_price = function(x = 0) {
+    self$final_price <- self$price - self$price*x 
+    invisible(self)
+  })
+)
+```
+
+#### Create R6Class objects using new() 
+- Create a sound_bar object using new() 
+- Set the price of the sound_bar to $99.99
+- Set the maximum discount to 60% 
+- Fetch the calculated price with a discount of 50% 
+
+```{r creating objects}
+sound_bar <- Product$new()
+sound_bar$price <- 99.99
+sound_bar$maximum_discount <- 0.6
+sound_bar$final_price <- 30
+sound_bar$calculated_final_price(0.5)
+sound_bar$final_price 
+```
+
+
+#### method chaining 
+- **Note:** Using too much of method chaining is not preferred. 
+
+```{r example of method chaining with R6Class}
+sound_bar$calculated_final_price(0.5)$final_price
+```
+
+
+#### $initialize() and $print() methods of R6Class 
+- $initialize() overrides the default behaviour of $new(). 
+- While creating the object, product_name & price are required, and discount should be between 0 - 100% or 0 to 1. 
+- Pass these important fields to an object while creation time itself.   
+- $print() will come in handly to print the required fields in the order required 
+
+```{r R6Class with initialize}
+Product <- R6Class("Product", list(
+  product_name = "",
+  price = 0, 
+  maximum_discount = 0.5,
+  discount = NA, 
+  final_price = 0,
+  initialize = function(product_name, price, discount) {
+    if (str_length(product_name) == 0) { 
+      stop("Please pass a product name")
+    }
+    self$product_name <- product_name
+    self$price <- price
+    self$discount <- discount
+  },
+  calculated_final_price = function(x = 0) {
+    self$final_price <- self$price - self$price*x 
+    invisible(self)
+  },
+  print = function(...){
+    cat("Product details: \n")
+    cat("  Product Name: ", self$product_name, "\n", sep = "")
+    cat("  Discount: ", self$discount, "\n", sep = "")
+    cat("  Customer paid:  ", self$final_price, "\n", sep = "")
+  }
+  )
+)
+
+o1 <- Product$new("SS", 99.99, 0.2)
+o1$calculated_final_price(0.1)
+o1
+
+```
+
+
+- From the above code the product name is set while creating the object itself. 
+- If it is required to add the product name later, set it using the set() function 
+
+```{r update_product_name function using set}
+Product$set("public", "update_product_name", function(name) {
+  self$product_name <- name
+})
+
+o2 <- Product$new("SS2", 109.99, 0.15)
+o2$calculated_final_price(0.2)
+print(o2)
+o2$update_product_name("Great product")
+```
+
+
+#### Setting access modifiers 
+- It can be observed that update_product_name is really not required    
+- Directly, the product_name can be updated. However, this is not a good practice 
+- By default the field name "access modifiers" are public. Which means anyone who could create objects in the current environment can modify the object. Now, this is changed to "private". 
+
+
+```{r private access modifiers}
+Product <- R6Class("Product", list(
+  initialize = function(product_name, price, discount) {
+    if (str_length(product_name) == 0) { 
+      stop("Please pass a product name")
+    }
+    private$product_name <- product_name
+    private$price <- price
+    private$discount <- discount
+  },
+  calculated_final_price = function(x = 0) {
+    private$final_price <- private$price - private$price*x 
+    invisible(self)
+  },
+  print = function(...){
+    cat("Product details: \n")
+    cat("  Product Name: ", private$product_name, "\n", sep = "")
+    cat("  Discount: ", private$discount, "\n", sep = "")
+    cat("  Customer paid:  ", private$final_price, "\n", sep = "")
+  }
+  ),
+  private = list(
+    product_name = "",
+    price = 0, 
+    maximum_discount = 0.5, 
+    discount = NA, 
+    final_price = 0
+  )
+)
+
+o1 <- Product$new("SS", 99.99, 0.2)
+o1$calculated_final_price(0.1)
+o1
+```
+
+
+#### Finalise() 
+```{r Delete the variables that are not required}
+Product <- R6Class("Product", list(
+  initialize = function(product_name, price, discount) {
+    if (str_length(product_name) == 0) { 
+      stop("Please pass a product name")
+    }
+    private$product_name <- product_name
+    private$price <- price
+    private$discount <- discount
+  },
+  calculated_final_price = function(x = 0) {
+    private$final_price <- private$price - private$price*x 
+    invisible(self)
+  },
+  print = function(...){
+    cat("Product details: \n")
+    cat("  Product Name: ", private$product_name, "\n", sep = "")
+    cat("  Discount: ", private$discount, "\n", sep = "")
+    cat("  Customer paid:  ", private$final_price, "\n", sep = "")
+  }
+  ),
+  private = list(
+    product_name = "",
+    price = 0, 
+    maximum_discount = 0.5, 
+    discount = NA, 
+    final_price = 0,
+    finalize = function(){ 
+      print("Remove the object and garbage collect!")
+    }
+  )
+)
+o1 <- Product$new("SS", 99.9, 0.2)
+rm(o1)
+gc()
+```
+
